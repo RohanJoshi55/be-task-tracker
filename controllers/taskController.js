@@ -64,8 +64,41 @@ const getTaskById = async (req, res) => {
   }
 };
 
+const updateTask = async (req, res) => {
+  try {
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({
+        message: "Task not found",
+      });
+    }
+
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      {
+        new: true,
+        runValidators: true,
+      }
+    )
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role");
+
+    res.status(200).json({
+      message: "Task updated successfully",
+      task: updatedTask,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createTask,
   getTasks,
   getTaskById,
+  updateTask,
 };
