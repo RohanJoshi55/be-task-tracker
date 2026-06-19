@@ -30,6 +30,21 @@ const createTask = async (req, res) => {
   }
 };
 
+const getTasks = async (req, res) => {
+  try {
+    const tasks = await Task.find()
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role");
+
+    res.status(200).json(tasks);
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createTask,
+  getTasks,
 };
