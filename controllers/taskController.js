@@ -50,16 +50,24 @@ const getTasks = async (req, res) => {
     filter.priority = req.query.priority;
     }
 
-    if (req.query.search) {
-    filter.title = {
-    $regex: req.query.search,
-    $options: "i",
-    };
-    }  
+    let sortOption = { createdAt: -1 };
 
-    const tasks = await Task.find(filter)
-      .populate("assignedTo", "name email role")
-      .populate("createdBy", "name email role");
+if (req.query.sort === "dueDate") {
+  sortOption = { dueDate: 1 };
+}
+
+if (req.query.sort === "priority") {
+  sortOption = { priority: 1 };
+}
+
+if (req.query.sort === "oldest") {
+  sortOption = { createdAt: 1 };
+}
+
+const tasks = await Task.find(filter)
+  .sort(sortOption)
+  .populate("assignedTo", "name email role")
+  .populate("createdBy", "name email role");
 
     res.status(200).json(tasks);
   } catch (error) {
