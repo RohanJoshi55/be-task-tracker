@@ -49,6 +49,14 @@ const getTasks = async (req, res) => {
     if (req.query.priority) {
     filter.priority = req.query.priority;
     }
+
+    if (req.query.search) {
+    filter.title = {
+    $regex: req.query.search,
+    $options: "i",
+    };
+    }  
+
     const tasks = await Task.find(filter)
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email role");
