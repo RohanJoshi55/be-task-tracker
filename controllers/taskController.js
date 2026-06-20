@@ -32,7 +32,17 @@ const createTask = async (req, res) => {
 
 const getTasks = async (req, res) => {
   try {
-    const tasks = await Task.find()
+    let filter = {};
+
+    if (req.user.role === "manager") {
+      filter.createdBy = req.user._id;
+    }
+
+    if (req.user.role === "employee") {
+      filter.assignedTo = req.user._id;
+    }
+
+    const tasks = await Task.find(filter)
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email role");
 
