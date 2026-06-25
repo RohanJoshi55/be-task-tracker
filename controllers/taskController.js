@@ -143,6 +143,36 @@ const updateTask = async (req, res) => {
   }
 };
 
+const getTaskStats = async (req, res) => {
+  try {
+    let filter = {};
+
+    if (req.user.role === "manager") {
+      filter.createdBy = req.user._id;
+    }
+
+    if (req.user.role === "employee") {
+      filter.assignedTo = req.user._id;
+    }
+
+    const totalTasks = await Task.countDocuments(filter);
+    const pendingTasks = await Task.countDocuments({ ...filter, status: "pending" });
+    const inProgressTasks = await Task.countDocuments({ ...filter, status: "in-progress" });
+    const completedTasks = await Task.countDocuments({ ...filter, status: "completed" });
+
+    res.status(200).json({
+      totalTasks,
+      pendingTasks,
+      inProgressTasks,
+      completedTasks,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 const deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -171,4 +201,5 @@ module.exports = {
   getTaskById,
   updateTask,
   deleteTask,
+  getTaskStats,
 };
