@@ -64,12 +64,26 @@ if (req.query.sort === "oldest") {
   sortOption = { createdAt: 1 };
 }
 
+const page = Number(req.query.page) || 1;
+const limit = Number(req.query.limit) || 5;
+const skip = (page - 1) * limit;
+
+const totalTasks = await Task.countDocuments(filter);
+
 const tasks = await Task.find(filter)
   .sort(sortOption)
+  .skip(skip)
+  .limit(limit)
   .populate("assignedTo", "name email role")
   .populate("createdBy", "name email role");
 
-    res.status(200).json(tasks);
+    res.status(200).json({
+  totalTasks,
+  page,
+  limit,
+  totalPages: Math.ceil(totalTasks / limit),
+  tasks,
+});
   } catch (error) {
     res.status(500).json({
       message: error.message,
