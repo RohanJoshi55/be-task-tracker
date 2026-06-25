@@ -173,6 +173,41 @@ const getTaskStats = async (req, res) => {
   }
 };
 
+const addTaskComment = async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({
+        message: "Task not found",
+      });
+    }
+
+    task.comments.push({
+      user: req.user._id,
+      text,
+    });
+
+    await task.save();
+
+    const updatedTask = await Task.findById(req.params.id)
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role")
+      .populate("comments.user", "name email role");
+
+    res.status(201).json({
+      message: "Comment added successfully",
+      task: updatedTask,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 const deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
@@ -201,5 +236,6 @@ module.exports = {
   getTaskById,
   updateTask,
   deleteTask,
-  getTaskStats,
+  getTaskStats, 
+  addTaskComment,
 };
