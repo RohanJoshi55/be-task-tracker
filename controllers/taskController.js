@@ -1,14 +1,30 @@
 const Task = require("../models/Task");
 
+const canAccessTask = (user, task) => {
+  if (user.role === "admin") return true;
+
+  const createdById = task.createdBy._id
+    ? task.createdBy._id.toString()
+    : task.createdBy.toString();
+
+  const assignedToId = task.assignedTo._id
+    ? task.assignedTo._id.toString()
+    : task.assignedTo.toString();
+
+  if (user.role === "manager") {
+    return createdById === user._id.toString();
+  }
+
+  if (user.role === "employee") {
+    return assignedToId === user._id.toString();
+  }
+
+  return false;
+};
+
 const createTask = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      priority,
-      dueDate,
-      assignedTo,
-    } = req.body;
+    const { title, description, priority, dueDate, assignedTo } = req.body;
 
     const task = await Task.create({
       title,
@@ -41,49 +57,49 @@ const getTasks = async (req, res) => {
     if (req.user.role === "employee") {
       filter.assignedTo = req.user._id;
     }
- 
+
     if (req.query.status) {
-    filter.status = req.query.status;
+      filter.status = req.query.status;
     }
 
     if (req.query.priority) {
-    filter.priority = req.query.priority;
+      filter.priority = req.query.priority;
     }
 
     let sortOption = { createdAt: -1 };
 
-if (req.query.sort === "dueDate") {
-  sortOption = { dueDate: 1 };
-}
+    if (req.query.sort === "dueDate") {
+      sortOption = { dueDate: 1 };
+    }
 
-if (req.query.sort === "priority") {
-  sortOption = { priority: 1 };
-}
+    if (req.query.sort === "priority") {
+      sortOption = { priority: 1 };
+    }
 
-if (req.query.sort === "oldest") {
-  sortOption = { createdAt: 1 };
-}
+    if (req.query.sort === "oldest") {
+      sortOption = { createdAt: 1 };
+    }
 
-const page = Number(req.query.page) || 1;
-const limit = Number(req.query.limit) || 5;
-const skip = (page - 1) * limit;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
 
-const totalTasks = await Task.countDocuments(filter);
+    const totalTasks = await Task.countDocuments(filter);
 
-const tasks = await Task.find(filter)
-  .sort(sortOption)
-  .skip(skip)
-  .limit(limit)
-  .populate("assignedTo", "name email role")
-  .populate("createdBy", "name email role");
+    const tasks = await Task.find(filter)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(limit)
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role");
 
     res.status(200).json({
-  totalTasks,
-  page,
-  limit,
-  totalPages: Math.ceil(totalTasks / limit),
-  tasks,
-});
+      totalTasks,
+      page,
+      limit,
+      totalPages: Math.ceil(totalTasks / limit),
+      tasks,
+    });
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -95,11 +111,18 @@ const getTaskById = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id)
       .populate("assignedTo", "name email role")
-      .populate("createdBy", "name email role");
+      .populate("createdBy", "name email role")
+      .populate("comments.user", "name email role");
 
     if (!task) {
       return res.status(404).json({
         message: "Task not found",
+      });
+    }
+
+    if (!canAccessTask(req.user, task)) {
+      return res.status(403).json({
+        message: "You are not authorized to access this task",
       });
     }
 
@@ -121,16 +144,19 @@ const updateTask = async (req, res) => {
       });
     }
 
-    const updatedTask = await Task.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
-    )
+    if (!canAccessTask(req.user, task)) {
+      return res.status(403).json({
+        message: "You are not authorized to access this task",
+      });
+    }
+
+    const updatedTask = await Task.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    })
       .populate("assignedTo", "name email role")
-      .populate("createdBy", "name email role");
+      .populate("createdBy", "name email role")
+      .populate("comments.user", "name email role");
 
     res.status(200).json({
       message: "Task updated successfully",
@@ -156,9 +182,18 @@ const getTaskStats = async (req, res) => {
     }
 
     const totalTasks = await Task.countDocuments(filter);
-    const pendingTasks = await Task.countDocuments({ ...filter, status: "pending" });
-    const inProgressTasks = await Task.countDocuments({ ...filter, status: "in-progress" });
-    const completedTasks = await Task.countDocuments({ ...filter, status: "completed" });
+    const pendingTasks = await Task.countDocuments({
+      ...filter,
+      status: "pending",
+    });
+    const inProgressTasks = await Task.countDocuments({
+      ...filter,
+      status: "in-progress",
+    });
+    const completedTasks = await Task.countDocuments({
+      ...filter,
+      status: "completed",
+    });
 
     res.status(200).json({
       totalTasks,
@@ -182,6 +217,12 @@ const addTaskComment = async (req, res) => {
     if (!task) {
       return res.status(404).json({
         message: "Task not found",
+      });
+    }
+
+    if (!canAccessTask(req.user, task)) {
+      return res.status(403).json({
+        message: "You are not authorized to access this task",
       });
     }
 
@@ -218,6 +259,12 @@ const deleteTask = async (req, res) => {
       });
     }
 
+    if (!canAccessTask(req.user, task)) {
+      return res.status(403).json({
+        message: "You are not authorized to access this task",
+      });
+    }
+
     await Task.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
@@ -236,6 +283,6 @@ module.exports = {
   getTaskById,
   updateTask,
   deleteTask,
-  getTaskStats, 
+  getTaskStats,
   addTaskComment,
 };
