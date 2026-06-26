@@ -22,7 +22,7 @@ const getProfile = async (req, res) => {
 
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
 
     const userExists = await User.findOne({ email });
 
@@ -39,7 +39,7 @@ const registerUser = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role,
+      role: "employee",
     });
 
     res.status(201).json({
