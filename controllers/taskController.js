@@ -1,4 +1,5 @@
 const Task = require("../models/Task");
+const logActivity = require("../utils/activityLogger");
 
 const canAccessTask = (user, task) => {
   if (user.role === "admin") return true;
@@ -33,6 +34,14 @@ const createTask = async (req, res) => {
       dueDate,
       assignedTo,
       createdBy: req.user._id,
+    });
+
+    await logActivity({
+    user: req.user._id,
+    action: "TASK_CREATED",
+    targetType: "Task",
+    targetId: task._id,
+    details: `Created task "${task.title}"`,
     });
 
     res.status(201).json({
