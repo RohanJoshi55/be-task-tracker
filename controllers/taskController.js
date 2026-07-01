@@ -251,6 +251,14 @@ const addTaskComment = async (req, res) => {
 
     await task.save();
 
+    await logActivity({
+  user: req.user._id,
+  action: "TASK_COMMENT_ADDED",
+  targetType: "Task",
+  targetId: task._id,
+  details: `Added comment on task "${task.title}"`,
+});
+
     const updatedTask = await Task.findById(req.params.id)
       .populate("assignedTo", "name email role")
       .populate("createdBy", "name email role")
@@ -282,6 +290,14 @@ const deleteTask = async (req, res) => {
         message: "You are not authorized to access this task",
       });
     }
+  
+     await logActivity({
+  user: req.user._id,
+  action: "TASK_DELETED",
+  targetType: "Task",
+  targetId: task._id,
+  details: `Deleted task "${task.title}"`,
+});
 
     await Task.findByIdAndDelete(req.params.id);
 
