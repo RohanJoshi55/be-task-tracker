@@ -167,6 +167,14 @@ const updateTask = async (req, res) => {
       .populate("createdBy", "name email role")
       .populate("comments.user", "name email role");
 
+      await logActivity({
+       user: req.user._id,
+       action: "TASK_UPDATED",
+       targetType: "Task",
+       targetId: updatedTask._id,
+       details: `Updated task "${updatedTask.title}"`,
+    });
+
     res.status(200).json({
       message: "Task updated successfully",
       task: updatedTask,
@@ -177,6 +185,7 @@ const updateTask = async (req, res) => {
     });
   }
 };
+
 
 const getTaskStats = async (req, res) => {
   try {
