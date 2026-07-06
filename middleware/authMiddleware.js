@@ -15,6 +15,12 @@ const protect = async (req, res, next) => {
 
       req.user = await User.findById(decoded.id).select("-password");
 
+      if (!req.user) {
+        return res.status(401).json({
+          message: "Not authorized, user not found",
+        });
+      }
+
       next();
     } else {
       return res.status(401).json({
@@ -28,4 +34,16 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };   
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({
+        message: "Access denied",
+      });
+    }
+
+    next();
+  };
+};
+
+module.exports = { protect, authorize };
