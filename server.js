@@ -8,6 +8,8 @@ const userRoutes = require("./routes/userRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const activityLogRoutes = require("./routes/activityLogRoutes");
 
+const { notFound, errorHandler } = require("./middleware/errorMiddleware");
+
 dotenv.config();
 
 connectDB();
@@ -25,6 +27,9 @@ app.use("/api/activity-logs", activityLogRoutes);
 app.get("/", (req, res) => {
   res.send("Task Tracker API Running...");
 });
+
+app.use(notFound);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
