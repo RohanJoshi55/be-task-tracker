@@ -5,7 +5,11 @@ const getUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
 
-    res.status(200).json(users);
+    res.status(200).json({
+      message: "Users fetched successfully",
+      count: users.length,
+      users,
+    });
   } catch (error) {
     res.status(500).json({
       message: error.message,
@@ -85,6 +89,13 @@ const changePassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body;
 
     const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
 
