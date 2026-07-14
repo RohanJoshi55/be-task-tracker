@@ -311,11 +311,68 @@ const deleteTask = async (req, res) => {
   }
 };
 
+const updateTaskStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const task = await Task.findById(req.params.id);
+
+    if (!task) {
+      return res.status(404).json({
+        message: "Task not found",
+      });
+    }
+
+    const isAdmin = req.user.role === "admin";
+
+    const isManagerOwner =
+      req.user.role === "manager" &&
+      task.createdBy.toString() === req.user._id.toString();
+
+    const isAssignedEmployee =
+      req.user.role === "employee" &&
+      task.assignedTo.toString() === req.user._id.toString();
+
+    if (!isAdmin && !isManagerOwner && !isAssignedEmployee) {
+      return res.status(403).json({
+        message: "You are not authorized to update this task status",
+      });
+    }
+
+    task.status = status;
+
+    await task.save();
+
+    await logActivity({
+      user: req.user._id,
+      action: "TASK_UPDATED",
+      targetType: "Task",
+      targetId: task._id,
+      details: `Updated status of task "${task.title}" to "${status}"`,
+    });
+
+    const updatedTask = await Task.findById(task._id)
+      .populate("assignedTo", "name email role")
+      .populate("createdBy", "name email role")
+      .populate("comments.user", "name email role");
+
+    res.status(200).json({
+      message: "Task status updated successfully",
+      task: updatedTask,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createTask,
   getTasks,
   getTaskById,
   updateTask,
+  updateTaskStatus,
   deleteTask,
   getTaskStats,
   addTaskComment,

@@ -8,9 +8,7 @@ const createTaskValidator = [
     .isLength({ min: 3 })
     .withMessage("Title must be at least 3 characters long"),
 
-  body("description")
-    .optional()
-    .trim(),
+  body("description").optional().trim(),
 
   body("priority")
     .optional()
@@ -23,7 +21,7 @@ const createTaskValidator = [
     .withMessage("Status must be pending, in-progress, or completed"),
 
   body("dueDate")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isISO8601()
     .withMessage("Due date must be a valid date"),
 
@@ -41,9 +39,7 @@ const updateTaskValidator = [
     .isLength({ min: 3 })
     .withMessage("Title must be at least 3 characters long"),
 
-  body("description")
-    .optional()
-    .trim(),
+  body("description").optional().trim(),
 
   body("priority")
     .optional()
@@ -56,7 +52,7 @@ const updateTaskValidator = [
     .withMessage("Status must be pending, in-progress, or completed"),
 
   body("dueDate")
-    .optional()
+    .optional({ nullable: true, checkFalsy: true })
     .isISO8601()
     .withMessage("Due date must be a valid date"),
 
@@ -64,6 +60,14 @@ const updateTaskValidator = [
     .optional()
     .isMongoId()
     .withMessage("Assigned user must be a valid user ID"),
+];
+
+const statusValidator = [
+  body("status")
+    .notEmpty()
+    .withMessage("Status is required")
+    .isIn(["pending", "in-progress", "completed"])
+    .withMessage("Status must be pending, in-progress, or completed"),
 ];
 
 const commentValidator = [
@@ -78,5 +82,6 @@ const commentValidator = [
 module.exports = {
   createTaskValidator,
   updateTaskValidator,
+  statusValidator,
   commentValidator,
 };
