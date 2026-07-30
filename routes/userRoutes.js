@@ -1,11 +1,20 @@
 const express = require("express");
 const router = express.Router();
 
-const { getUsers, deleteUser, updateProfile, updateUser, changePassword, resetUserPassword } = require("../controllers/userController");
+const {
+  createUser,
+  getUsers,
+  deleteUser,
+  updateProfile,
+  updateUser,
+  changePassword,
+  resetUserPassword,
+} = require("../controllers/userController");
 
 const { protect } = require("../middleware/authMiddleware");
 const { authorize } = require("../middleware/roleMiddleware");
 
+router.post("/", protect, authorize("admin", "manager"), createUser);
 router.get("/", protect, authorize("admin", "manager"), getUsers);
 router.patch("/profile", protect, updateProfile);
 router.patch("/change-password", protect, changePassword);
